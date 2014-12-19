@@ -5,6 +5,8 @@ import copy
 import sys
 import pygame
 import time
+import random
+import math
 from bisect import bisect_right
 from operator import itemgetter
 r = 1
@@ -135,8 +137,10 @@ class Tree(object):
         return
 
     
-    def display_tree(self, save = False, filename = "image.jpg"):
-        """Wrapper function to draw the tree."""
+    def display_tree(self, save = False, filename = "image.jpg", view=True):
+        """Wrapper function to draw the tree.
+            If save is set to True will save the image to filename.
+            If view is set to True will display the image."""
         nodes = self.get_cost_params()[1]
         tree_length = self.get_length()
         d_nodes = ((height - 40.0) / (2**(tree_length - 1))) 
@@ -147,17 +151,16 @@ class Tree(object):
         self.__drawTree(40, height / 2.0, window, tree_length, horz_step, depth, d_nodes)
         if save:
             pygame.image.save(window, filename)
-        cont = True
-        while cont:
+        while view:
             for event in pygame.event.get():
                  if event.type == pygame.QUIT:
-                     cont = False
+                     view = False
             pygame.display.flip()
         pygame.quit()
         return
             
 
-def grow_tree(data, depth, max_depth = 500, Nmin = 5, labels = {}, start = False):
+def grow_tree(data, depth, max_depth = 500, Nmin = 5, labels = {}, start = False, feat_bag = False):
     """Function to grow a regression tree given some training data."""
     root = Tree(region_error(data.values()), numpy.mean(numpy.array(data.values())), 
         numpy.std(numpy.array(data.values())), start, len(data.values()))
@@ -168,12 +171,21 @@ def grow_tree(data, depth, max_depth = 500, Nmin = 5, labels = {}, start = False
     if depth >= max_depth:
         return root
     num_vars = len(data.keys()[0])
+
     min_error = -1
     min_split = -1
     split_var = -1
 
+    # Select variables to chose the split point from.
+    # If feature bagging (for random forests) choose sqrt(p) variables
+    # where p is the total number of variables.
+    # Otherwise select all variables.
+    if (feat_bag):
+        cand_vars = random.sample(range(num_vars), int(num_vars**(0.5)))
+    else:
+        cand_vars = range(num_vars)
     # iterate over parameter space
-    for i in range(num_vars):
+    for i in cand_vars:
         var_space = [x[i] for x in data]
         if (min(var_space) == max(var_space)):
             continue
@@ -199,8 +211,8 @@ def grow_tree(data, depth, max_depth = 500, Nmin = 5, labels = {}, start = False
         else:
             data2[i] = data[i]
     #grow right and left branches
-    root.left = grow_tree(data1, depth + 1, max_depth = max_depth, Nmin = Nmin, labels = labels)
-    root.right = grow_tree(data2, depth + 1, max_depth = max_depth, Nmin = Nmin, labels = labels)
+    root.left = grow_tree(data1, depth + 1, max_depth = max_depth, Nmin = Nmin, labels = labels, feat_bag = feat_bag)
+    root.right = grow_tree(data2, depth + 1, max_depth = max_depth, Nmin = Nmin, labels = labels, feat_bag = feat_bag)
     return root
 
 def cvt(data, v, max_depth = 500, Nmin = 5, labels = {}):
