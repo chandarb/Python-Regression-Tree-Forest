@@ -32,9 +32,9 @@ for row in f_reader:
             train_dict[tuple(dat)] = float(res)
 
 # Build tree.
-# 10-fold cross validation.
-tree = cvt(train_dict, 10, max_depth = 500, Nmin = 5, labels = labels)
-tree.display_tree(save = True, filename = "football_tree_new.jpg")
+# 6-fold cross validation.
+tree = cvt(train_dict, 6, max_depth = 500, Nmin = 5, labels = labels)
+tree.display_tree(save = True, filename = "football_tree_new.jpg", view=False)
 
 
 f = open("football_predictions_new.txt", "wb")
